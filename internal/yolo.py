@@ -5,6 +5,8 @@ import time
 import cv2
 import csv
 
+from .gui import show_error_and_quit
+
 class VideoProcesser:
     def __init__(self, ui_handle=None):
         self.ui_handle = ui_handle
@@ -14,6 +16,8 @@ class VideoProcesser:
 
     def open_io(self, input_path, output_path):
         self.video_in = cv2.VideoCapture(input_path)
+        if not self.video_in.isOpened():
+            show_error_and_quit('Corrupt video file.', 'Program will now exit.')
 
         vid_width = int(self.video_in.get(cv2.CAP_PROP_FRAME_WIDTH))
         vid_height = int(self.video_in.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -47,7 +51,17 @@ class VideoProcesser:
         self.csv_out = csv.DictWriter(f, fieldnames=['id', 'label', 'confidence', 'appears_at', 'disappears_at'])
 
     def run(self):
-        num_frames = int(self.video_in.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = 0
+        num_frames = 0
+        try:
+            num_frames = int(self.video_in.get(cv2.CAP_PROP_FRAME_COUNT))
+            fps = self.video_in.get(cv2.CAP_PROP_FPS)
+        except:
+            show_error_and_quit('Cant read properties from file', 'Program will now exit.')
+
+        if fps <= 0 or num_frames < 1:
+            show_error_and_quit('Cant read properties from file', 'Program will now exit.')
+        
         start_time = time.time()
         last_time = start_time
         
@@ -59,7 +73,8 @@ class VideoProcesser:
 
         frame_counter = 1
         while True:
-            current_seconds = (frame_counter - 1) / self.video_in.get(cv2.CAP_PROP_FPS)
+            current_seconds = (frame_counter - 1) / fps
+            
             success, frame = self.video_in.read()
 
             if not success:
@@ -141,7 +156,7 @@ class VideoProcesser:
                         if (dist < (max(w, h)) / 2):
     	                    continue
 
-                    tracker = cv2.TrackerMedianFlow_create()
+                    tracker = cv2.TrackerKCF_create()
                     tracker.init(frame, (x, y, w, h))
                     new_object = {
                         'id': len(vehicles),

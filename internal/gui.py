@@ -16,8 +16,7 @@ class App:
             title="Select a file", 
             filetypes=(
                 ("avi files", "*.avi"),
-                ("mp4 files", "*.mp4"),
-                ("all files", "*.*")
+                ("mp4 files", "*.mp4")
             )
         )
 
